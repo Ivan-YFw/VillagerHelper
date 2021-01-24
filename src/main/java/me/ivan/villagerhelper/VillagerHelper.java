@@ -1,13 +1,11 @@
 package me.ivan.villagerhelper;
 
 import com.mojang.blaze3d.platform.GlStateManager;
-import com.mojang.blaze3d.systems.RenderSystem;
 import me.ivan.villagerhelper.config.Configs;
 import me.ivan.villagerhelper.utils.CompoundTagParser;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.*;
-import net.minecraft.client.util.math.Matrix4f;
-import net.minecraft.client.util.math.Rotation3;
+import net.minecraft.client.render.entity.EntityRenderDispatcher;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.util.Formatting;
@@ -125,40 +123,44 @@ public class VillagerHelper {
         GlStateManager.lineWidth(lineWidth);
     }
 
-    public static void drawString(String text, BlockPos pos, float tickDelta, int color, float line) {
-        drawString(text, pos.getX(), pos.getY(), pos.getZ(), tickDelta, color, line);
-    }
-    public static void drawString(String text, Vec3d pos, float tickDelta, int color, float line) {
-        drawString(text, pos.getX(), pos.getY(), pos.getZ(), tickDelta, color, line);
-    }
     public static void drawString(String text, double x, double y, double z, float tickDelta, int color, float line) {
+        drawString(text, new Vec3d(x, y, z), tickDelta, color, line);
+    }
+    public static void drawString(String text, Vec3d pos, float tickDelta, int color, float line)
+    {
         MinecraftClient client = MinecraftClient.getInstance();
         Camera camera = client.gameRenderer.getCamera();
-        if (camera.isReady() && client.getEntityRenderManager().gameOptions != null && client.player != null) {
+        if (camera.isReady() && client.getEntityRenderManager().gameOptions != null && client.player != null)
+        {
+            double x = pos.getX();
+            double y = pos.getY();
+            double z = pos.getZ();
+            if (client.player.squaredDistanceTo(x, y, z) > Configs.RENDER_DISTANCE * Configs.RENDER_DISTANCE)
+            {
+                return;
+            }
             double camX = camera.getPos().x;
             double camY = camera.getPos().y;
             double camZ = camera.getPos().z;
-            RenderSystem.pushMatrix();
-            RenderSystem.translatef((float)(x - camX), (float)(y - camY), (float)(z - camZ));
-            RenderSystem.normal3f(0.0F, 1.0F, 0.0F);
-            RenderSystem.multMatrix(new Matrix4f(camera.getRotation()));
-            RenderSystem.scalef(0.025F, -0.025F, 0.025F);
-            RenderSystem.enableTexture();
-            RenderSystem.disableDepthTest();  // visibleThroughObjects
-            RenderSystem.depthMask(true);
-            RenderSystem.scalef(-1.0F, 1.0F, 1.0F);
-            RenderSystem.enableAlphaTest();
+            GlStateManager.pushMatrix();
+            GlStateManager.translatef((float)(x - camX), (float)(y - camY), (float)(z - camZ));
+            GlStateManager.normal3f(0.0F, 1.0F, 0.0F);
+            GlStateManager.scalef(0.025F, -0.025F, 0.025F);
+            EntityRenderDispatcher entityRenderDispatcher = client.getEntityRenderManager();
+            GlStateManager.rotatef(-entityRenderDispatcher.cameraYaw, 0.0F, 1.0F, 0.0F);
+            GlStateManager.rotatef(-entityRenderDispatcher.cameraPitch, 1.0F, 0.0F, 0.0F);
+            GlStateManager.enableTexture();
+            GlStateManager.disableDepthTest();  // visibleThroughObjects
+            GlStateManager.depthMask(true);
+            GlStateManager.scalef(-1.0F, 1.0F, 1.0F);
 
-            VertexConsumerProvider.Immediate immediate = VertexConsumerProvider.immediate(Tessellator.getInstance().getBuffer());
             float renderX = -client.textRenderer.getStringWidth(text) * 0.5F;
             float renderY = client.textRenderer.getStringBoundedHeight(text, Integer.MAX_VALUE) * (-0.5F + 1.25F * line);
-            Matrix4f matrix4f = Rotation3.identity().getMatrix();
-            client.textRenderer.draw(text, renderX, renderY, color, false, matrix4f, immediate, true, 0, 0xF000F0);
-            immediate.draw();
+            client.textRenderer.draw(text, renderX, renderY, color);
 
-            RenderSystem.color4f(1.0F, 1.0F, 1.0F, 1.0F);
-            RenderSystem.enableDepthTest();
-            RenderSystem.popMatrix();
+            GlStateManager.color4f(1.0F, 1.0F, 1.0F, 1.0F);
+            GlStateManager.enableDepthTest();
+            GlStateManager.popMatrix();
         }
     }
 

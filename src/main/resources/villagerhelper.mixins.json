@@ -8,7 +8,7 @@
     "CustomPayloadS2CPacketAccessor"
   ],
   "client": [
-    "WorldRendererMixin",
+    "GameRendererMixin",
     "TitleScreenMixin",
     "SettingsScreenMixin",
     "ClientPlayNetworkHandlerMixin"

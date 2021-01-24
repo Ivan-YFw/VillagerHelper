@@ -1,13 +1,18 @@
 package me.ivan.villagerhelper.utils;
 
+import com.google.common.collect.Maps;
+import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.registry.Registry;
 
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -50,6 +55,15 @@ public class CompoundTagParser {
         return null;
     }
 
+    private static Map<Enchantment, Integer> getEnchantments(final ListTag tag) {
+        final Map<Enchantment, Integer> map = Maps.newLinkedHashMap();
+        for (int i = 0; i < tag.size(); ++i) {
+            final CompoundTag lv = tag.getCompound(i);
+            Registry.ENCHANTMENT.getOrEmpty(Identifier.tryParse(lv.getString("id"))).ifPresent(enchantment -> map.put(enchantment, lv.getInt("lvl")));
+        }
+        return map;
+    }
+
     public static Pair<String, Integer> getFirstEnchantmentBookTrade(CompoundTag tag) {
         AtomicReference<String> retName = new AtomicReference<>("Unknown");
         int retPrice = -1;
@@ -72,7 +86,7 @@ public class CompoundTagParser {
                     retPrice = buyB.getInt("Count");
                 }
                 if (sell.getString("id").equals("minecraft:enchanted_book")) {
-                    EnchantmentHelper.getEnchantments(sell.getCompound("tag").getList("StoredEnchantments", 10)).forEach((enchantment, level) -> {
+                    getEnchantments(sell.getCompound("tag").getList("StoredEnchantments", 10)).forEach((enchantment, level) -> {
                         retName.set(enchantment.getName(level).getString());
                         flag.set(true);
                     });
